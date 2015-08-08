@@ -1,0 +1,12 @@
+runtime: go
+api_version: go1
+vm: true
+skip_files:
+- ^.git$
+threadsafe: true
+handlers:
+- url: /.*
+  script: _go_app
+inbound_services:
+- warmup
+instance_class: F4_1G
