@@ -15,6 +15,7 @@ func (state *State) Scope() (scope things.Scope) {
 		scope.Ancestors = things.ScopeToPerson(state.PersonId)
 	} else {
 		scope.Ancestors = ScopeToOrigin(state.Origin.URL, state.PersonId)
+		scope.OriginId = state.Origin.URL
 	}
 	state.CurrentScope = scope
 	return scope

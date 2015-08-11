@@ -51,7 +51,6 @@ func (m *WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	scope := state.Scope()
 	person := state.InitPerson(&src_person, &scope)
-	state.ThePerson = person
 
 	for {
 		messageType, reply, err := conn.ReadMessage()
@@ -61,7 +60,7 @@ func (m *WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fmt.Println("Received back from client: " + string(reply))
-		msg := state.ThePerson.Username + "!!!:  " + string(reply)
+		msg := person.Username + "!!!:  " + string(reply)
 
 		if err = conn.WriteMessage(messageType, []byte(msg)); err != nil {
 			fmt.Println("Can't send")
@@ -74,7 +73,6 @@ func (m *WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func ScopeAndState(w http.ResponseWriter, r *http.Request) (src_person kolkata.Person, scope things.Scope, state_ptr State) {
 
 	state := CreateState(w, r)
-	// defer state.Context.Connection.Close()  //TODO: postgres bug.
 
 	src_person, err := kolkata.Current(w, r)
 

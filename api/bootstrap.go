@@ -2,11 +2,20 @@ package api
 
 import (
 	"github.com/likestripes/kolkata"
+	"github.com/likestripes/pacific"
+	"github.com/likestripes/things"
 	"net/http"
 )
 
 func BootstrapHandler(w http.ResponseWriter, r *http.Request) {
 	state := CreateState(w, r)
+
+	pacific.AutoMigrate(state.Context, "Person", "person_id", &kolkata.Person{})
+	pacific.AutoMigrate(state.Context, "Session", "session_id", &kolkata.Session{})
+	pacific.AutoMigrate(state.Context, "SignIn", "signin_id", &kolkata.SignIn{})
+	pacific.AutoMigrate(state.Context, "Thing", "thing_id", &things.Thing{})
+	pacific.AutoMigrate(state.Context, "SharedThing", "object_id", &things.Share{})
+	pacific.AutoMigrate(state.Context, "SharedTag", "object_id", &things.Share{})
 
 	src_person, _ := kolkata.Current(w, r)
 	state.Person = src_person

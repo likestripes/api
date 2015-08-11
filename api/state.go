@@ -11,7 +11,7 @@ import (
 )
 
 var public_host = "lsapi-vm.appspot.com"
-var public_url  = "https://"+public_host
+var public_url = "https://" + public_host
 
 type State struct {
 	Bootstrap    string
