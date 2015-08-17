@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/likestripes/moitessier"
 	"github.com/likestripes/things"
 	"io"
 	"io/ioutil"
@@ -116,9 +117,17 @@ func (state State) PutPostHandler() (thing things.Thing, err error) {
 	thing.TagsFromString(",", additions["tags"], request.FormValue("tags"))
 
 	thing.Save()
+	defer state.dispatcher(thing)
 
 	return
 }
+
+func (state State) dispatcher(thing things.Thing) {
+	for _, tag := range thing.Tags {
+		moitessier.Dispatch(&state.Context, state.Person, tag.TagId, thing.ToJSON())
+	}
+}
+
 
 func newColor() string {
 	red := strconv.FormatInt(int64(rand.Intn(255)), 16)

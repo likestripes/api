@@ -6,6 +6,7 @@
 `pacific_pg_user=username pacific_log=yes pacific_pg_dbname=ls_api go run -tags 'postgres' main.go`
 
 Todo:
+- [ ] services: Service << Tag + Listener + endpoint; AvailableService == a thing template?
 - [ ] events channel
 - [ ] logging
 - [ ] origin /ping

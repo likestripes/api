@@ -2,15 +2,18 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
 	_ "github.com/likestripes/calcutta"
 	"github.com/likestripes/kolkata"
+	"github.com/likestripes/moitessier"
 	"github.com/likestripes/pacific"
 	"github.com/likestripes/things"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -49,25 +52,67 @@ func (m *WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	state.PersonId = src_person.PersonId
 	state.PersonIdStr = src_person.PersonIdStr
 
-	scope := state.Scope()
-	person := state.InitPerson(&src_person, &scope)
+	conditions := moitessier.Conditions{&state.Context, src_person, moitessier.Private, state.Path[1:]}
+	listener := conditions.NewListener()
+	err = listener.ListenUntil(ws_listener, ws_responder, time.Now(), 1000, 300000, ws_state{conn})
+	timeout := time.Now().Add(time.Second * 5)
 
-	for {
-		messageType, reply, err := conn.ReadMessage()
+	if err != nil {
+		fmt.Println(err.Error())
+		conn.WriteControl(websocket.CloseInternalServerErr, []byte(err.Error()), timeout)
+	}
+	conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	listener.Close()
+}
+
+func ws_listener(listener *moitessier.Listener, args []interface{}) error {
+
+	arg := args[0].(ws_state)
+
+	err_ch := make(chan error, 1)
+	ch := make(chan []byte, 1)
+	timeout := make(chan bool, 1)
+
+	go func() {
+		_, p, err := arg.conn.ReadMessage()
+		err_ch <- err
+		ch <- p
+	}()
+
+	go func() {
+		time.Sleep(2 * time.Millisecond)
+		timeout <- true
+	}()
+
+	select {
+	case err := <-err_ch:
 		if err != nil {
-			fmt.Println("Can't receive")
-			break
+			return err
 		}
-
-		fmt.Println("Received back from client: " + string(reply))
-		msg := person.Username + "!!!:  " + string(reply)
-
-		if err = conn.WriteMessage(messageType, []byte(msg)); err != nil {
-			fmt.Println("Can't send")
-			break
+	case p := <-ch:
+		if string(p) == ":close" {
+			arg.conn.WriteMessage(websocket.TextMessage, []byte("closing listener and connection"))
+			return errors.New("closing connection")
 		}
+	case <-timeout:
 	}
 
+	return nil
+
+}
+
+func ws_responder(msgs []moitessier.Message, args []interface{}) error {
+	arg := args[0].(ws_state)
+	for _, msg := range msgs {
+		if err := arg.conn.WriteMessage(websocket.TextMessage, []byte(msg.Text)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type ws_state struct {
+	conn *websocket.Conn
 }
 
 func ScopeAndState(w http.ResponseWriter, r *http.Request) (src_person kolkata.Person, scope things.Scope, state_ptr State) {
